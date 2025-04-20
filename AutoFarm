@@ -1,5 +1,5 @@
 local Players = game:GetService("Players")
-local player = Players.LocalPlayer or Players["dari123323"]
+local player = Players.LocalPlayer or Players:FindFirstChild("dari123323")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
@@ -15,6 +15,15 @@ local function createGui()
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "QuestAutoFarmGui"
     screenGui.ResetOnSpawn = false
+    
+    if syn and syn.protect_gui then
+        syn.protect_gui(screenGui)
+        screenGui.Parent = game.CoreGui
+    elseif gethui then
+        screenGui.Parent = gethui()
+    else
+        screenGui.Parent = player:WaitForChild("PlayerGui")
+    end
     
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "MainFrame"
@@ -218,7 +227,6 @@ local function createGui()
         end
     end)
     
-    screenGui.Parent = player:WaitForChild("PlayerGui")
     return screenGui
 end
 
@@ -258,7 +266,7 @@ local function updateProgressInfo(guiInstance, current, total)
     end
 end
 
--- FIXED: Improved quest check logic
+-- Improved quest check logic
 local function hasQuest()
     -- Check if quest object exists
     if not player or not player:FindFirstChild("Quest") then
@@ -286,7 +294,7 @@ local function hasQuest()
     return true
 end
 
--- FIXED: Improved quest completion detection
+-- Improved quest completion detection
 local function isQuestCompleted()
     if not hasQuest() then return false end
     
@@ -322,7 +330,7 @@ local function getQuestDetails()
     }
 end
 
--- IMPROVED: Tween flight to position with adjustable speed
+-- Tween flight to position with adjustable speed
 local function tweenFlyTo(position, duration)
     local character = player.Character
     if not character or not character:FindFirstChild("HumanoidRootPart") then 
@@ -369,7 +377,7 @@ local function tweenFlyTo(position, duration)
     return true
 end
 
--- FIXED: Improved UI interaction with multiple methods
+-- Improved UI interaction with multiple methods
 local function clickButton(button)
     if not button or not button.Visible then 
         print("Button not found or not visible")
@@ -410,7 +418,7 @@ local function clickButton(button)
     return true
 end
 
--- FIXED: Improved dialogue option finding
+-- Improved dialogue option finding
 local function findDialogueOption(optionNumber)
     -- Search in multiple places the dialogue might appear
     local places = {
@@ -433,7 +441,7 @@ local function findDialogueOption(optionNumber)
     return nil
 end
 
--- FIXED: Completely rewritten quest giver interaction
+-- Completely rewritten quest giver interaction
 local function talkToQuestGiver(gui)
     -- Determine quest state
     local hasActiveQuest = hasQuest()
@@ -518,11 +526,25 @@ local function talkToQuestGiver(gui)
         return false
     end
     
-    -- Use fireclickdetector function
-    fireclickdetector(clickDetector)
+    -- Use fireclickdetector function with Swift compatibility check
+    if fireclickdetector then
+        fireclickdetector(clickDetector)
+    else
+        -- Fallback for executors without fireclickdetector
+        local character = player.Character
+        if character and character:FindFirstChild("HumanoidRootPart") then
+            character.HumanoidRootPart.CFrame = CFrame.new(questGiverPosition + Vector3.new(0, 3, -2))
+            wait(0.5)
+            -- Try virtual click
+            local VirtualUser = game:GetService("VirtualUser")
+            VirtualUser:CaptureController()
+            VirtualUser:ClickButton1(Vector2.new(0, 0))
+        end
+    end
+    
     wait(1.5) -- Wait for dialogue to appear
     
-    -- FIXED: Handle dialogue options based on quest state
+    -- Handle dialogue options based on quest state
     log(gui, "Looking for dialogue options...")
     
     -- Multiple attempts to find and click the right option
@@ -571,7 +593,7 @@ local function talkToQuestGiver(gui)
                     return true
                 end
             end
-        }
+        end
         
         -- If we didn't find the right option or clicking didn't work, wait and try again
         log(gui, "Attempt " .. attempt .. " failed, retrying...")
@@ -591,7 +613,7 @@ local function talkToQuestGiver(gui)
     end
 end
 
--- IMPROVED: Weapon handling
+-- Improved weapon handling
 local function equipWeapon()
     local character = player.Character
     if not character then return false end
@@ -625,9 +647,9 @@ local function equipWeapon()
     end
     
     return false
-}
+end
 
--- FIXED: Improved enemy targeting to match quest target
+-- Improved enemy targeting to match quest target
 local function findSlayerTarget()
     local livingThings = workspace.LivingThings:GetChildren()
     local closestEnemy = nil
@@ -668,9 +690,9 @@ local function findSlayerTarget()
     end
     
     return closestEnemy
-}
+end
 
--- IMPROVED: Auto-clicker with better tool activation
+-- Improved auto-clicker with better tool activation
 local function startAutoClicker()
     if autoClickEnabled then return end
     
@@ -710,9 +732,9 @@ local function startAutoClicker()
             wait(0.1) -- Click 10 times per second
         end
     end)()
-}
+end
 
--- IMPROVED: Attack target with better positioning
+-- Improved attack target with better positioning
 local function attackTarget(target, gui)
     if not target or 
        not target:FindFirstChild("Humanoid") or 
@@ -759,9 +781,9 @@ local function attackTarget(target, gui)
     startAutoClicker()
     
     return true
-}
+end
 
--- IMPROVED: Main quest loop with better logic flow
+-- Main quest loop with better logic flow
 local function runQuestLoop(gui)
     while wait(0.5) and scriptEnabled do
         -- Check if character exists
@@ -782,7 +804,7 @@ local function runQuestLoop(gui)
                 wait(3)
             end
             continue
-        else if isQuestCompleted() then
+        elseif isQuestCompleted() then
             autoClickEnabled = false -- Stop auto-clicking when quest complete
             log(gui, "Quest completed! Turning in...")
             talkToQuestGiver(gui)
@@ -805,87 +827,118 @@ local function runQuestLoop(gui)
                     wait(1)
                 else
                     -- Keep following and attacking until target is dead
+                    -- Keep following and attacking until target is dead
                     local startAttackTime = tick()
                     while target and 
                           target:FindFirstChild("Humanoid") and 
-                          target.Humanoid.Health > 0 and 
-                          scriptEnabled do
-                        
-                        -- Update quest progress in GUI
-                        local currentDetails = getQuestDetails()
-                        if currentDetails then
-                            updateProgressInfo(gui, currentDetails.amount, currentDetails.targetAmount)
+                          target.Humanoid.Health > 0 and
+                          scriptEnabled and
+                          tick() - startAttackTime < 30 do -- 30 second timeout for combat
+                              
+                        -- Update the quest progress in GUI
+                        if questDetails then
+                            updateProgressInfo(gui, player.Quest.Amount.Value, questDetails.targetAmount)
                         end
                         
-                        -- Check if we've been attacking too long (target might be stuck)
-                        if tick() - startAttackTime > 15 then
-                            log(gui, "Target taking too long, finding new target")
-                            autoClickEnabled = false -- Stop auto-clicking
-                            break
-                        end
-                        
-                        -- Keep repositioning to attack
-                        if target:FindFirstChild("HumanoidRootPart") and 
+                        -- Check if we're too far from target (>10 studs)
+                        if target:FindFirstChild("HumanoidRootPart") and
                            player.Character and 
                            player.Character:FindFirstChild("HumanoidRootPart") then
                             
-                            local currentDistance = (player.Character.HumanoidRootPart.Position - target.HumanoidRootPart.Position).Magnitude
-                            
-                            -- Code continues from previous section
-
-            -- If we've been attacking too long or got too far from target, reposition
-            if currentDistance > 8 then
-                local newPos = target.HumanoidRootPart.Position + Vector3.new(0, 1, -3)
-                tweenFlyTo(newPos, 0.5)
-            end
-        end
-        
-        wait(0.5)
-    end
-    
-    -- Once target is dead, check quest progress
-    autoClickEnabled = false -- Stop auto clicking
-    log(gui, "Target defeated, checking progress")
-    wait(1)
-end
+                            local distance = (player.Character.HumanoidRootPart.Position - target.HumanoidRootPart.Position).Magnitude
+                            if distance > 10 then
+                                -- Reposition closer to target
+                                log(gui, "Repositioning...")
+                                local targetPos = target.HumanoidRootPart.Position
+                                local attackPosition = targetPos + Vector3.new(0, 1, -3)
+                                tweenFlyTo(attackPosition, 1)
+                                
+                                -- Face target again
+                                player.Character.HumanoidRootPart.CFrame = CFrame.lookAt(
+                                    player.Character.HumanoidRootPart.Position,
+                                    target.HumanoidRootPart.Position
+                                )
+                            end
+                        end
+                        
+                        wait(0.5)
+                    end
+                    
+                    -- Check if we timed out on this target
+                    if target and target:FindFirstChild("Humanoid") and target.Humanoid.Health > 0 then
+                        log(gui, "Combat timeout, finding new target")
+                    else
+                        log(gui, "Target defeated")
+                    end
+                    
+                    -- Small delay before next target
+                    wait(1)
+                end
             else
                 log(gui, "No targets found, searching...")
                 wait(2)
             end
+        else
+            log(gui, "Error getting quest details")
+            wait(1)
         end
     end
+    
+    autoClickEnabled = false
+    log(gui, "Script stopped")
 end
 
--- Main script function
-local function startQuestScript(gui)
-    -- Only run once
-    if scriptRunning and not scriptEnabled then
-        scriptRunning = false
-        autoClickEnabled = false
-        log(gui, "Script stopped")
-        return
+-- Main function to start the quest script
+function startQuestScript(gui)
+    -- Set humanoid walkspeed to 0 (we'll be flying)
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        player.Character.Humanoid.WalkSpeed = 0
     end
     
-    log(gui, "Script started")
-    
-    -- Main loop in separate thread
+    -- Start main loop
     coroutine.wrap(function()
-        while scriptRunning do
-            if not scriptEnabled then
-                log(gui, "Script paused")
-                autoClickEnabled = false
-                wait(1)
-            else
-                -- Run single pass of quest loop
-                pcall(function()
-                    runQuestLoop(gui)
-                end)
-                wait(0.5)
-            end
-        end
+        runQuestLoop(gui)
+        scriptRunning = false
     end)()
 end
 
--- Create GUI and start script
-local gui = createGui()
-							
+-- Handle character respawning
+player.CharacterAdded:Connect(function(character)
+    if scriptEnabled then
+        wait(1)
+        if character:FindFirstChild("Humanoid") then
+            character.Humanoid.WalkSpeed = 0
+        end
+    end
+end)
+
+-- Handle script execution
+local function initialize()
+    -- Create GUI
+    local gui = createGui()
+    
+    -- Set initial status
+    if hasQuest() then
+        local questDetails = getQuestDetails()
+        if questDetails then
+            updateQuestInfo(gui, questDetails.title, questDetails.target)
+            updateProgressInfo(gui, questDetails.amount, questDetails.targetAmount)
+        end
+    end
+    
+    -- Setup hotkey
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if not gameProcessed and input.KeyCode == Enum.KeyCode.RightControl then
+            -- Toggle script with RightControl key
+            local toggleButton = gui.MainFrame:FindFirstChild("ToggleButton")
+            if toggleButton then
+                toggleButton.MouseButton1Click:Fire()
+            end
+        end
+    end)
+    
+    log(gui, "Script loaded! Press RightControl to toggle.")
+end
+
+-- Run script
+initialize()
