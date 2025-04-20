@@ -1,0 +1,891 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer or Players["dari123323"]
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+
+-- Script state
+local scriptEnabled = false
+local scriptRunning = false
+local autoClickEnabled = false
+local tweenSpeed = 100 -- Default tween speed (higher = faster)
+
+-- Create GUI
+local function createGui()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "QuestAutoFarmGui"
+    screenGui.ResetOnSpawn = false
+    
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = UDim2.new(0, 220, 0, 180)
+    mainFrame.Position = UDim2.new(0.85, -110, 0.1, 0)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    mainFrame.BorderSizePixel = 2
+    mainFrame.BorderColor3 = Color3.fromRGB(100, 100, 100)
+    mainFrame.Parent = screenGui
+    
+    local frameCorner = Instance.new("UICorner")
+    frameCorner.CornerRadius = UDim.new(0, 8)
+    frameCorner.Parent = mainFrame
+    
+    -- Title
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Name = "TitleLabel"
+    titleLabel.Size = UDim2.new(1, 0, 0, 30)
+    titleLabel.Position = UDim2.new(0, 0, 0, 0)
+    titleLabel.BackgroundColor3 = Color3.fromRGB(65, 65, 65)
+    titleLabel.BorderSizePixel = 0
+    titleLabel.Text = "Quest Auto Farm"
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleLabel.TextSize = 16
+    titleLabel.Parent = mainFrame
+    
+    local titleCorner = Instance.new("UICorner")
+    titleCorner.CornerRadius = UDim.new(0, 8)
+    titleCorner.Parent = titleLabel
+    
+    -- Status label
+    local statusLabel = Instance.new("TextLabel")
+    statusLabel.Name = "StatusLabel"
+    statusLabel.Size = UDim2.new(1, -20, 0, 20)
+    statusLabel.Position = UDim2.new(0, 10, 0, 40)
+    statusLabel.BackgroundTransparency = 1
+    statusLabel.Text = "Status: Inactive"
+    statusLabel.Font = Enum.Font.Gotham
+    statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    statusLabel.TextSize = 14
+    statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+    statusLabel.Parent = mainFrame
+    
+    -- Quest Info label
+    local questLabel = Instance.new("TextLabel")
+    questLabel.Name = "QuestLabel"
+    questLabel.Size = UDim2.new(1, -20, 0, 20)
+    questLabel.Position = UDim2.new(0, 10, 0, 65)
+    questLabel.BackgroundTransparency = 1
+    questLabel.Text = "Quest: None"
+    questLabel.Font = Enum.Font.Gotham
+    questLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    questLabel.TextSize = 14
+    questLabel.TextXAlignment = Enum.TextXAlignment.Left
+    questLabel.Parent = mainFrame
+    
+    -- Progress label
+    local progressLabel = Instance.new("TextLabel")
+    progressLabel.Name = "ProgressLabel"
+    progressLabel.Size = UDim2.new(1, -20, 0, 20)
+    progressLabel.Position = UDim2.new(0, 10, 0, 90)
+    progressLabel.BackgroundTransparency = 1
+    progressLabel.Text = "Progress: 0/0"
+    progressLabel.Font = Enum.Font.Gotham
+    progressLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    progressLabel.TextSize = 14
+    progressLabel.TextXAlignment = Enum.TextXAlignment.Left
+    progressLabel.Parent = mainFrame
+    
+    -- Speed Control label
+    local speedLabel = Instance.new("TextLabel")
+    speedLabel.Name = "SpeedLabel"
+    speedLabel.Size = UDim2.new(0.45, 0, 0, 20)
+    speedLabel.Position = UDim2.new(0, 10, 0, 115)
+    speedLabel.BackgroundTransparency = 1
+    speedLabel.Text = "Speed: 100"
+    speedLabel.Font = Enum.Font.Gotham
+    speedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    speedLabel.TextSize = 14
+    speedLabel.TextXAlignment = Enum.TextXAlignment.Left
+    speedLabel.Parent = mainFrame
+    
+    -- Speed Control buttons
+    local decreaseButton = Instance.new("TextButton")
+    decreaseButton.Name = "DecreaseButton"
+    decreaseButton.Size = UDim2.new(0.22, 0, 0, 20)
+    decreaseButton.Position = UDim2.new(0.48, 0, 0, 115)
+    decreaseButton.BackgroundColor3 = Color3.fromRGB(80, 80, 200)
+    decreaseButton.BorderSizePixel = 0
+    decreaseButton.Text = "-"
+    decreaseButton.Font = Enum.Font.GothamBold
+    decreaseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    decreaseButton.TextSize = 16
+    decreaseButton.Parent = mainFrame
+    
+    local increaseButton = Instance.new("TextButton")
+    increaseButton.Name = "IncreaseButton"
+    increaseButton.Size = UDim2.new(0.22, 0, 0, 20)
+    increaseButton.Position = UDim2.new(0.72, 0, 0, 115)
+    increaseButton.BackgroundColor3 = Color3.fromRGB(80, 80, 200)
+    increaseButton.BorderSizePixel = 0
+    increaseButton.Text = "+"
+    increaseButton.Font = Enum.Font.GothamBold
+    increaseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    increaseButton.TextSize = 16
+    increaseButton.Parent = mainFrame
+    
+    -- Button corners
+    local decreaseCorner = Instance.new("UICorner")
+    decreaseCorner.CornerRadius = UDim.new(0, 4)
+    decreaseCorner.Parent = decreaseButton
+    
+    local increaseCorner = Instance.new("UICorner")
+    increaseCorner.CornerRadius = UDim.new(0, 4)
+    increaseCorner.Parent = increaseButton
+    
+    -- Toggle button
+    local toggleButton = Instance.new("TextButton")
+    toggleButton.Name = "ToggleButton"
+    toggleButton.Size = UDim2.new(0.8, 0, 0, 30)
+    toggleButton.Position = UDim2.new(0.1, 0, 1, -40)
+    toggleButton.BackgroundColor3 = Color3.fromRGB(80, 200, 120)
+    toggleButton.BorderSizePixel = 0
+    toggleButton.Text = "START"
+    toggleButton.Font = Enum.Font.GothamBold
+    toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    toggleButton.TextSize = 16
+    toggleButton.Parent = mainFrame
+    
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, 6)
+    buttonCorner.Parent = toggleButton
+    
+    -- Make frame draggable
+    local isDragging = false
+    local dragInput
+    local dragStart
+    local startPos
+    
+    local function updateDrag(input)
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(
+            startPos.X.Scale, 
+            startPos.X.Offset + delta.X, 
+            startPos.Y.Scale, 
+            startPos.Y.Offset + delta.Y
+        )
+    end
+    
+    titleLabel.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            isDragging = true
+            dragStart = input.Position
+            startPos = mainFrame.Position
+        end
+    end)
+    
+    titleLabel.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            isDragging = false
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if isDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            updateDrag(input)
+        end
+    end)
+    
+    -- Speed control functionality
+    decreaseButton.MouseButton1Click:Connect(function()
+        tweenSpeed = math.max(50, tweenSpeed - 10)
+        speedLabel.Text = "Speed: " .. tweenSpeed
+    end)
+    
+    increaseButton.MouseButton1Click:Connect(function()
+        tweenSpeed = math.min(300, tweenSpeed + 10)
+        speedLabel.Text = "Speed: " .. tweenSpeed
+    end)
+    
+    -- Toggle button functionality
+    toggleButton.MouseButton1Click:Connect(function()
+        scriptEnabled = not scriptEnabled
+        
+        if scriptEnabled then
+            toggleButton.Text = "STOP"
+            toggleButton.BackgroundColor3 = Color3.fromRGB(200, 80, 80)
+            statusLabel.Text = "Status: Active"
+            
+            -- Start script if not already running
+            if not scriptRunning then
+                scriptRunning = true
+                startQuestScript(screenGui)
+            end
+        else
+            toggleButton.Text = "START"
+            toggleButton.BackgroundColor3 = Color3.fromRGB(80, 200, 120)
+            statusLabel.Text = "Status: Inactive"
+            autoClickEnabled = false
+        end
+    end)
+    
+    screenGui.Parent = player:WaitForChild("PlayerGui")
+    return screenGui
+end
+
+-- Utility functions
+local function log(guiInstance, message)
+    if guiInstance and guiInstance:FindFirstChild("MainFrame") then
+        local statusLabel = guiInstance.MainFrame:FindFirstChild("StatusLabel")
+        if statusLabel then
+            statusLabel.Text = "Status: " .. message
+        end
+    end
+    print("[Quest Farm] " .. message)
+end
+
+local function updateQuestInfo(guiInstance, questTitle, questTarget)
+    if guiInstance and guiInstance:FindFirstChild("MainFrame") then
+        local questLabel = guiInstance.MainFrame:FindFirstChild("QuestLabel")
+        if questLabel then
+            questLabel.Text = "Quest: " .. (questTitle or "None")
+        end
+        
+        if questTarget then
+            local progressLabel = guiInstance.MainFrame:FindFirstChild("ProgressLabel")
+            if progressLabel then
+                progressLabel.Text = "Target: " .. questTarget
+            end
+        end
+    end
+end
+
+local function updateProgressInfo(guiInstance, current, total)
+    if guiInstance and guiInstance:FindFirstChild("MainFrame") then
+        local progressLabel = guiInstance.MainFrame:FindFirstChild("ProgressLabel")
+        if progressLabel then
+            progressLabel.Text = "Progress: " .. current .. "/" .. total
+        end
+    end
+end
+
+-- FIXED: Improved quest check logic
+local function hasQuest()
+    -- Check if quest object exists
+    if not player or not player:FindFirstChild("Quest") then
+        return false
+    end
+    
+    -- Check if Quest Info exists with values
+    if not player.Quest:FindFirstChild("Info") or
+       not player.Quest.Info:FindFirstChild("Info") or
+       not player.Quest.Info:FindFirstChild("Title") or
+       not player.Quest:FindFirstChild("Target") or
+       not player.Quest:FindFirstChild("Amount") then
+        return false
+    end
+    
+    -- Check that both Info and Title values exist and aren't empty
+    local infoValue = player.Quest.Info.Info.Value
+    local titleValue = player.Quest.Info.Title.Value
+    
+    if infoValue == nil or infoValue == "" or titleValue == nil or titleValue == "" then
+        return false
+    end
+    
+    -- Quest exists and has valid information
+    return true
+end
+
+-- FIXED: Improved quest completion detection
+local function isQuestCompleted()
+    if not hasQuest() then return false end
+    
+    local questInfo = player.Quest.Info.Info.Value
+    local questAmount = player.Quest.Amount.Value
+    
+    -- Extract target amount from quest info (e.g., "Kill 5 Demons")
+    local targetAmount = tonumber(questInfo:match("%d+")) or 0
+    
+    -- Check if completed
+    return questAmount >= targetAmount
+end
+
+-- Get detailed quest information
+local function getQuestDetails()
+    if not hasQuest() then return nil end
+    
+    local questInfo = player.Quest.Info.Info.Value
+    local questTitle = player.Quest.Info.Title.Value
+    local questTarget = player.Quest.Target.Value
+    local questAmount = player.Quest.Amount.Value
+    
+    -- Extract target amount from quest info (e.g., "Kill 5 Demons")
+    local targetAmount = tonumber(questInfo:match("%d+")) or 0
+    
+    return {
+        info = questInfo,
+        title = questTitle,
+        target = questTarget,
+        amount = questAmount,
+        targetAmount = targetAmount,
+        isComplete = questAmount >= targetAmount
+    }
+end
+
+-- IMPROVED: Tween flight to position with adjustable speed
+local function tweenFlyTo(position, duration)
+    local character = player.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then 
+        return false 
+    end
+    
+    -- Adjust duration based on speed setting
+    local adjustedDuration = duration * (100 / tweenSpeed)
+    
+    -- Create tween
+    local tweenInfo = TweenInfo.new(
+        adjustedDuration,
+        Enum.EasingStyle.Quad,
+        Enum.EasingDirection.Out,
+        0,
+        false,
+        0
+    )
+    
+    local goal = {}
+    goal.CFrame = CFrame.new(position)
+    
+    local tween = TweenService:Create(character.HumanoidRootPart, tweenInfo, goal)
+    tween:Play()
+    
+    -- Wait for tween to complete
+    local startTime = tick()
+    local maxWait = adjustedDuration + 1 -- Add 1 second buffer
+    
+    while tween.PlaybackState ~= Enum.PlaybackState.Completed do
+        if tick() - startTime > maxWait then
+            tween:Cancel()
+            return false
+        end
+        
+        if not scriptEnabled then
+            tween:Cancel()
+            return false
+        end
+        
+        wait(0.1)
+    end
+    
+    return true
+end
+
+-- FIXED: Improved UI interaction with multiple methods
+local function clickButton(button)
+    if not button or not button.Visible then 
+        print("Button not found or not visible")
+        return false 
+    end
+    
+    -- Method 1: Direct approach
+    for _, event in pairs({"MouseButton1Click", "Activated"}) do
+        if button[event] then
+            button[event]:Fire()
+            wait(0.1)
+        end
+    end
+    
+    -- Method 2: VirtualUser click
+    local VirtualUser = game:GetService("VirtualUser")
+    if button.AbsolutePosition and button.AbsoluteSize then
+        local position = button.AbsolutePosition + button.AbsoluteSize/2
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton1(Vector2.new(position.X, position.Y))
+    end
+    
+    -- Method 3: Fire specific event for dialog buttons
+    if button:IsA("TextButton") and button.Parent and button.Parent.Name == "Frame" then
+        local event = button:FindFirstChildOfClass("RemoteEvent")
+        if event then
+            event:FireServer()
+        end
+    end
+    
+    -- Method 4: Try direct .Activated call (some games use this)
+    pcall(function()
+        button.Activated:Fire()
+    end)
+    
+    print("Clicked button: " .. button.Name)
+    wait(0.5) -- Wait after clicking
+    return true
+end
+
+-- FIXED: Improved dialogue option finding
+local function findDialogueOption(optionNumber)
+    -- Search in multiple places the dialogue might appear
+    local places = {
+        player.PlayerGui.DialogueGui,
+        game:GetService("StarterGui").DialogueGui
+    }
+    
+    for _, place in pairs(places) do
+        if place and place:FindFirstChild("Center") then
+            local center = place.Center
+            if center and center:FindFirstChild("Frame") then
+                local option = center.Frame:FindFirstChild("Option" .. optionNumber)
+                if option then
+                    return option
+                end
+            end
+        end
+    end
+    
+    return nil
+end
+
+-- FIXED: Completely rewritten quest giver interaction
+local function talkToQuestGiver(gui)
+    -- Determine quest state
+    local hasActiveQuest = hasQuest()
+    local questCompleted = false
+    
+    if hasActiveQuest then
+        questCompleted = isQuestCompleted()
+        
+        -- Update appropriate status message
+        if questCompleted then
+            log(gui, "Quest completed, turning in")
+        else
+            log(gui, "Already have an active quest")
+            local questDetails = getQuestDetails()
+            if questDetails then
+                updateQuestInfo(gui, questDetails.title, questDetails.target)
+                updateProgressInfo(gui, questDetails.amount, questDetails.targetAmount)
+            end
+            return true
+        end
+    else
+        log(gui, "Getting new quest")
+    end
+    
+    -- Find quest giver
+    local questGiver = workspace.IntNpcs:FindFirstChild("MissionD")
+    if not questGiver then
+        log(gui, "Quest giver not found")
+        return false
+    end
+    
+    -- Find position to tween to
+    local questGiverPosition
+    if questGiver:FindFirstChild("HumanoidRootPart") then
+        questGiverPosition = questGiver.HumanoidRootPart.Position
+    elseif questGiver:FindFirstChild("PrimaryPart") then
+        questGiverPosition = questGiver.PrimaryPart.Position
+    else
+        -- Look for any part
+        for _, part in pairs(questGiver:GetDescendants()) do
+            if part:IsA("BasePart") then
+                questGiverPosition = part.Position
+                break
+            end
+        end
+    end
+    
+    if not questGiverPosition then
+        log(gui, "Cannot locate quest giver position")
+        return false
+    end
+    
+    -- Tween fly to quest giver
+    log(gui, "Flying to quest giver")
+    local character = player.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then
+        log(gui, "Character not ready")
+        return false
+    end
+    
+    local distance = (character.HumanoidRootPart.Position - questGiverPosition).Magnitude
+    local duration = math.min(distance / 100, 5) -- Cap at 5 seconds max
+    
+    -- Fly slightly in front of the NPC
+    if not tweenFlyTo(questGiverPosition + Vector3.new(0, 3, -2), duration) then
+        log(gui, "Tween flight failed")
+        return false
+    end
+    
+    -- Click on quest giver using ClickDetector
+    log(gui, "Interacting with quest giver")
+    local clickDetector
+    for _, v in pairs(questGiver:GetDescendants()) do
+        if v:IsA("ClickDetector") then
+            clickDetector = v
+            break
+        end
+    end
+    
+    if not clickDetector then
+        log(gui, "Click detector not found")
+        return false
+    end
+    
+    -- Use fireclickdetector function
+    fireclickdetector(clickDetector)
+    wait(1.5) -- Wait for dialogue to appear
+    
+    -- FIXED: Handle dialogue options based on quest state
+    log(gui, "Looking for dialogue options...")
+    
+    -- Multiple attempts to find and click the right option
+    for attempt = 1, 5 do
+        if questCompleted then
+            -- If quest is completed, we might need to click option3 first then option1
+            local option3 = findDialogueOption(3)
+            if option3 then
+                log(gui, "Clicking Option3 to turn in quest...")
+                clickButton(option3)
+                wait(1)
+            end
+            
+            -- Then click Option1
+            local option1 = findDialogueOption(1)
+            if option1 then
+                log(gui, "Clicking Option1 to confirm...")
+                clickButton(option1)
+                wait(1)
+                
+                -- Check if quest was turned in (we should no longer have it)
+                if not hasQuest() then
+                    log(gui, "Quest turned in successfully!")
+                    return true
+                end
+            end
+        else
+            -- If getting a new quest, just click Option1
+            local option1 = findDialogueOption(1)
+            if option1 then
+                log(gui, "Clicking Option1 to get quest...")
+                clickButton(option1)
+                wait(1)
+                
+                -- Check if we got the quest
+                if hasQuest() then
+                    log(gui, "Quest accepted!")
+                    
+                    -- Update quest info in UI
+                    local questDetails = getQuestDetails()
+                    if questDetails then
+                        updateQuestInfo(gui, questDetails.title, questDetails.target)
+                        updateProgressInfo(gui, questDetails.amount, questDetails.targetAmount)
+                    end
+                    
+                    return true
+                end
+            end
+        }
+        
+        -- If we didn't find the right option or clicking didn't work, wait and try again
+        log(gui, "Attempt " .. attempt .. " failed, retrying...")
+        wait(0.5)
+    end
+    
+    -- Final check if our quest state changed as expected
+    if questCompleted and not hasQuest() then
+        log(gui, "Quest turned in successfully!")
+        return true
+    elseif not questCompleted and hasQuest() then
+        log(gui, "Quest accepted!")
+        return true
+    else
+        log(gui, "Failed to interact with quest giver")
+        return false
+    end
+end
+
+-- IMPROVED: Weapon handling
+local function equipWeapon()
+    local character = player.Character
+    if not character then return false end
+    
+    -- Check if already equipped
+    if character:FindFirstChild("Nichirin Katana") or 
+       character:FindFirstChildOfClass("Tool") and 
+       character:FindFirstChildOfClass("Tool").Name == "Nichirin Katana" then
+        return true
+    end
+    
+    -- Try to equip katana from backpack
+    local katana = player.Backpack:FindFirstChild("Nichirin Katana")
+    if katana then
+        katana.Parent = character
+        wait(0.5)
+        return true
+    end
+    
+    -- Fallback to fists if no katana
+    local fists = player.Backpack:FindFirstChild("Fists")
+    if fists then
+        fists.Parent = character
+        wait(0.5)
+        return true
+    end
+    
+    -- Check if any tool is already equipped
+    if character:FindFirstChildOfClass("Tool") then
+        return true
+    end
+    
+    return false
+}
+
+-- FIXED: Improved enemy targeting to match quest target
+local function findSlayerTarget()
+    local livingThings = workspace.LivingThings:GetChildren()
+    local closestEnemy = nil
+    local closestDistance = math.huge
+    
+    local character = player.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then 
+        return nil 
+    end
+    
+    local position = character.HumanoidRootPart.Position
+    
+    -- Get quest target name if available
+    local targetName = "Slayer" -- Default target
+    if hasQuest() then
+        local questDetails = getQuestDetails()
+        if questDetails and questDetails.target and questDetails.target ~= "" then
+            targetName = questDetails.target
+        end
+    end
+    
+    -- Print what we're looking for
+    print("Looking for target: " .. targetName)
+    
+    for _, entity in pairs(livingThings) do
+        -- Look for the specific target in LivingThings
+        if entity.Name == targetName and
+           entity:FindFirstChild("Humanoid") and 
+           entity.Humanoid.Health > 0 and 
+           entity:FindFirstChild("HumanoidRootPart") then
+            
+            local distance = (entity.HumanoidRootPart.Position - position).Magnitude
+            if distance < closestDistance then
+                closestDistance = distance
+                closestEnemy = entity
+            end
+        end
+    end
+    
+    return closestEnemy
+}
+
+-- IMPROVED: Auto-clicker with better tool activation
+local function startAutoClicker()
+    if autoClickEnabled then return end
+    
+    autoClickEnabled = true
+    coroutine.wrap(function()
+        local VirtualUser = game:GetService("VirtualUser")
+        
+        while autoClickEnabled and scriptEnabled do
+            -- Simulate mouse click
+            VirtualUser:CaptureController()
+            VirtualUser:ClickButton1(Vector2.new(0, 0))
+            
+            -- Also try tool activation
+            local character = player.Character
+            if character then
+                local tool = character:FindFirstChildOfClass("Tool")
+                if tool then
+                    -- Try multiple activation methods
+                    tool:Activate()
+                    
+                    -- Try remote event
+                    if tool:FindFirstChild("Remote") then
+                        pcall(function()
+                            tool.Remote:FireServer("MouseButton1")
+                        end)
+                    end
+                    
+                    -- Try alternate remotes if they exist
+                    pcall(function()
+                        if tool:FindFirstChild("Attack") then
+                            tool.Attack:FireServer()
+                        end
+                    end)
+                end
+            end
+            
+            wait(0.1) -- Click 10 times per second
+        end
+    end)()
+}
+
+-- IMPROVED: Attack target with better positioning
+local function attackTarget(target, gui)
+    if not target or 
+       not target:FindFirstChild("Humanoid") or 
+       target.Humanoid.Health <= 0 or 
+       not target:FindFirstChild("HumanoidRootPart") then 
+        return false
+    end
+    
+    local character = player.Character
+    if not character or 
+       not character:FindFirstChild("HumanoidRootPart") or 
+       not character:FindFirstChild("Humanoid") then 
+        return false 
+    end
+    
+    -- Equip weapon before attacking
+    if not equipWeapon() then
+        log(gui, "Trying to equip weapon...")
+        -- Continue anyway, maybe we can attack without a tool
+    end
+    
+    -- Tween to target
+    log(gui, "Flying to target: " .. target.Name)
+    local targetPos = target.HumanoidRootPart.Position
+    local distance = (character.HumanoidRootPart.Position - targetPos).Magnitude
+    local duration = math.min(distance / 100, 3) -- Cap at 3 seconds max
+    
+    -- Choose position based on target height (slightly in front)
+    local attackPosition = targetPos + Vector3.new(0, 1, -3) 
+    
+    if not tweenFlyTo(attackPosition, duration) then
+        log(gui, "Tween to target failed")
+        return false
+    end
+    
+    -- Face target
+    character.HumanoidRootPart.CFrame = CFrame.lookAt(
+        character.HumanoidRootPart.Position,
+        target.HumanoidRootPart.Position
+    )
+    
+    -- Start auto-clicking
+    log(gui, "Auto-attacking target")
+    startAutoClicker()
+    
+    return true
+}
+
+-- IMPROVED: Main quest loop with better logic flow
+local function runQuestLoop(gui)
+    while wait(0.5) and scriptEnabled do
+        -- Check if character exists
+        if not player.Character or not player.Character:FindFirstChild("Humanoid") then
+            log(gui, "Waiting for character...")
+            wait(3)
+            continue
+        end
+        
+        -- Check if we have a quest and if it's completed
+        if not hasQuest() then
+            autoClickEnabled = false -- Stop auto-clicking while getting quest
+            log(gui, "No quest, getting new quest...")
+            
+            local questResult = talkToQuestGiver(gui)
+            if not questResult then
+                log(gui, "Failed to get quest, retrying in 3s...")
+                wait(3)
+            end
+            continue
+        else if isQuestCompleted() then
+            autoClickEnabled = false -- Stop auto-clicking when quest complete
+            log(gui, "Quest completed! Turning in...")
+            talkToQuestGiver(gui)
+            wait(2)
+            continue
+        end
+        
+        -- Get quest details and update UI
+        local questDetails = getQuestDetails()
+        if questDetails then
+            updateQuestInfo(gui, questDetails.title, questDetails.target)
+            updateProgressInfo(gui, questDetails.amount, questDetails.targetAmount)
+            
+            -- Find and attack target
+            local target = findSlayerTarget()
+            if target then
+                log(gui, "Found target: " .. target.Name)
+                if not attackTarget(target, gui) then
+                    log(gui, "Attack failed, retrying...")
+                    wait(1)
+                else
+                    -- Keep following and attacking until target is dead
+                    local startAttackTime = tick()
+                    while target and 
+                          target:FindFirstChild("Humanoid") and 
+                          target.Humanoid.Health > 0 and 
+                          scriptEnabled do
+                        
+                        -- Update quest progress in GUI
+                        local currentDetails = getQuestDetails()
+                        if currentDetails then
+                            updateProgressInfo(gui, currentDetails.amount, currentDetails.targetAmount)
+                        end
+                        
+                        -- Check if we've been attacking too long (target might be stuck)
+                        if tick() - startAttackTime > 15 then
+                            log(gui, "Target taking too long, finding new target")
+                            autoClickEnabled = false -- Stop auto-clicking
+                            break
+                        end
+                        
+                        -- Keep repositioning to attack
+                        if target:FindFirstChild("HumanoidRootPart") and 
+                           player.Character and 
+                           player.Character:FindFirstChild("HumanoidRootPart") then
+                            
+                            local currentDistance = (player.Character.HumanoidRootPart.Position - target.HumanoidRootPart.Position).Magnitude
+                            
+                            -- Code continues from previous section
+
+            -- If we've been attacking too long or got too far from target, reposition
+            if currentDistance > 8 then
+                local newPos = target.HumanoidRootPart.Position + Vector3.new(0, 1, -3)
+                tweenFlyTo(newPos, 0.5)
+            end
+        end
+        
+        wait(0.5)
+    end
+    
+    -- Once target is dead, check quest progress
+    autoClickEnabled = false -- Stop auto clicking
+    log(gui, "Target defeated, checking progress")
+    wait(1)
+end
+            else
+                log(gui, "No targets found, searching...")
+                wait(2)
+            end
+        end
+    end
+end
+
+-- Main script function
+local function startQuestScript(gui)
+    -- Only run once
+    if scriptRunning and not scriptEnabled then
+        scriptRunning = false
+        autoClickEnabled = false
+        log(gui, "Script stopped")
+        return
+    end
+    
+    log(gui, "Script started")
+    
+    -- Main loop in separate thread
+    coroutine.wrap(function()
+        while scriptRunning do
+            if not scriptEnabled then
+                log(gui, "Script paused")
+                autoClickEnabled = false
+                wait(1)
+            else
+                -- Run single pass of quest loop
+                pcall(function()
+                    runQuestLoop(gui)
+                end)
+                wait(0.5)
+            end
+        end
+    end)()
+end
+
+-- Create GUI and start script
+local gui = createGui()
+							
